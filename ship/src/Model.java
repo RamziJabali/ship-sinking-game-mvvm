@@ -1,7 +1,7 @@
 
 public class Model {
-    public static final String ENTER_ROW = "Enter a coordinate (0 . . 9) (Row) or Enter 'Q' to quit";
-    public static final String ENTER_COLUMN = "Enter a coordinate (0 . . 9) (Column) or Enter 'Q' to quit";
+    public static final String ENTER_ROW = "Enter a coordinate (0 . . 9) (Row) or Enter 'Q' to quit Player: ";
+    public static final String ENTER_COLUMN = "Enter a coordinate (0 . . 9) (Column) or Enter 'Q' to quit Player: ";
     public static final String USER_LOST_GAME = " You lost!";
     public static final String USER_WON_GAME_1 = " Congratulations! Player ";
     public static final String USER_WON_GAME_2 = "won";
@@ -9,8 +9,10 @@ public class Model {
     public static final String UNHIT_POSITION = ".";
     public static final String HIT_POSITION = "*";
     public static final String MISSED_HIT_POSITION = "X";
+    public static final String HIT_OWN_SHIP = "Oh no, you hit your own ship player ";
     public static final String YOU_HIT_A_SHIP = "Good job! A ship was hit";
     public static final String YOU_DESTROYED_A_SHIP = "Congrats! A ship was destroyed";
+    public static final String SHIP_ALREADY_HIT= "This ship is already destroyed please select another area";
     public static final String YOU_MISSED = "No ships were hit";
     public static final String DIVIDER_LINE = "----------------------------------------------------------------------";
 

@@ -2,7 +2,9 @@
 public enum Player {
     X("X"),
     O("O"),
-    NA(" ");
+    NH("."),
+    HIT("*"),
+    MISS("X");
 
     public final String displayValue;
 
