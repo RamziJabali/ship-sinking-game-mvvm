@@ -13,17 +13,29 @@ public class Model {
     public static final String YOU_DESTROYED_A_SHIP = "Congrats! A ship was destroyed";
     public static final String YOU_MISSED = "No ships were hit";
     public static final String DIVIDER_LINE = "----------------------------------------------------------------------";
-    public static final int NUMBER_SHIPS = 12;
-    static final int SEA_SIZE = 5;
 
-    public Ship[][] shipGrid;
+    public static final int NUMBER_SHIPS = 12;
+    public static final int SEA_SIZE = 5;
+
     public boolean enterRow;
     public boolean enterColumn;
-    public int row, column;
+
+    public int row;
+    public int column;
+
     public Player currentPlayer = Player.X;
+
+    public Ship ship;
+
+    public Ship[][] shipGrid;
 
     public Model() {
         shipGrid = new Ship[NUMBER_SHIPS][NUMBER_SHIPS];
+        for (int row = 0; row < SEA_SIZE; row++) {
+            for (int column = 0; column < SEA_SIZE; column++) {
+                shipGrid[row][column] = null;
+            }
+        }
     }
 }
 

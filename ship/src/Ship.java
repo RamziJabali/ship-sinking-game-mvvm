@@ -2,8 +2,12 @@
 public class Ship {
     Player player;
 
-    boolean hitOrNot;
+    boolean shipHit;
 
+    public  Ship(Player player){
+       this.player = player;
+       shipHit = false;
+    }
 
 }
 
