@@ -1,4 +1,3 @@
-
 import java.util.Random;
 
 public class ViewModel implements ViewListener {
@@ -18,14 +17,138 @@ public class ViewModel implements ViewListener {
         viewState = new ViewState();
         model = new Model();
         populateGridWithShips();
-        viewState.output = Model.PLAY_MODE_ENJOY + "\n";
-        viewState.output += gridToString() + "\n";
-        viewState.output += Model.ENTER_ROW;
-        viewState.displayOutput = true;
-        viewState.askForInput = true;
-        model.enterRow = true;
-        model.enterColumn = false;
+        model.isUserEnteringRow = true;
+        model.isUserEnteringColumn = false;
         invalidateView();
+    }
+
+    private void invalidateView() {
+        generateViewstateFromModel();
+        view.setNewViewState(viewState);
+    }
+
+    private void generateViewstateFromModel() {
+        if (didPlayerWin()) {
+            viewState.askForInput = false;
+            viewState.displayOutput = true;
+            viewState.output = Model.USER_WON_GAME_1 + model.currentPlayer.getOtherPlayer() + Model.USER_WON_GAME_2;
+            return;
+        }
+        if (model.startOfGame) {
+            viewState.output = Model.PLAY_MODE_ENJOY + "\n";
+            viewState.output += gridToString() + "\n";
+            viewState.output += Model.ENTER_ROW + model.currentPlayer;
+            viewState.displayOutput = true;
+            viewState.askForInput = true;
+            return;
+        }
+        if (model.didCurrentUserMiss) {
+            viewState.output = Model.YOU_MISSED + "\n";
+            viewState.output += gridToString();
+            viewState.output += Model.ENTER_ROW + model.currentPlayer;
+            return;
+        }
+        if (model.didCurrentUserHitOwnShip) {
+            viewState.output = Model.HIT_OWN_SHIP + model.currentPlayer.getOtherPlayer() + "\n";
+            viewState.output += gridToString();
+            viewState.output += Model.ENTER_ROW + model.currentPlayer;
+            return;
+        }
+        if (model.didCurrentUserHitEnemyShip) {
+            viewState.output = Model.YOU_DESTROYED_A_SHIP + "\n";
+            viewState.output += gridToString();
+
+            viewState.output += Model.ENTER_ROW + model.currentPlayer;
+            return;
+        }
+        if (model.isShipAlreadyHit) {
+            viewState.output = Model.SHIP_ALREADY_HIT + "\n";
+            viewState.output += gridToString();
+            viewState.output += Model.ENTER_ROW + model.currentPlayer;
+            return;
+        }
+        if (model.isUserEnteringRow) {
+            viewState.askForInput = true;
+            viewState.displayOutput = true;
+            viewState.output = Model.ENTER_ROW + model.currentPlayer;
+            return;
+        }
+        if (model.isUserEnteringColumn) {
+            viewState.askForInput = true;
+            viewState.displayOutput = true;
+            viewState.output = Model.ENTER_COLUMN + model.currentPlayer;
+        }
+    }
+
+    @Override
+    public void enteredInput(String input) {
+        model.startOfGame = false;
+        model.didCurrentUserMiss = false;
+        model.didCurrentUserHitOwnShip = false;
+        model.didCurrentUserHitEnemyShip = false;
+        model.isShipAlreadyHit = false;
+        int enteredRow = model.isUserEnteringRow ? getValueOrNegativeOne(input) : 0;
+        int enteredColumn = model.isUserEnteringColumn ? getValueOrNegativeOne(input) : 0;
+        if (model.isUserEnteringRow && !isXOrYWithinGridRange(enteredRow)) {
+            invalidateView();
+            return;
+        }
+        if (model.isUserEnteringColumn && !isXOrYWithinGridRange(enteredColumn)) {
+            invalidateView();
+            return;
+        }
+        if (model.isUserEnteringRow) {
+            model.currentUserEnteredRow = enteredRow;
+            model.isUserEnteringRow = false;
+            model.isUserEnteringColumn = true;
+            invalidateView();
+            return;
+        }
+        if (model.isUserEnteringColumn) {
+            model.currentUserEnteredColumn = enteredColumn;
+            model.isUserEnteringColumn = false;
+            model.isUserEnteringRow = true;
+            enteredCoordinate();
+        }
+    }
+
+    private void enteredCoordinate() {
+        if (!isThisAShip(model.currentUserEnteredRow, model.currentUserEnteredColumn)) {
+            model.seaGrid[model.currentUserEnteredRow][model.currentUserEnteredColumn] = Model.MISSED_HIT_POSITION;
+            model.didCurrentUserMiss = true;
+            switchPlayers();
+            invalidateView();
+            return;
+        }
+        if (isThisShipAlreadyHit(model.currentUserEnteredRow, model.currentUserEnteredColumn)) {
+            model.isShipAlreadyHit = true;
+            invalidateView();
+            return;
+        }
+        updatePointPlayerPoints();
+        if (didCurrentPlayerHitHisOwnShip()) {
+            model.didCurrentUserHitOwnShip = true;
+            getShipAtEnteredCoordinate().shipHit = true;
+            switchPlayers();
+            invalidateView();
+            return;
+        }
+        model.didCurrentUserHitEnemyShip = true;
+        getShipAtEnteredCoordinate().shipHit = true;
+        switchPlayers();
+        invalidateView();
+    }
+
+    private boolean didPlayerWin() {
+        return Player.X.points == Model.NUMBER_PER_PLAYER || Player.O.points == Model.NUMBER_PER_PLAYER;
+    }
+
+    private void updatePointPlayerPoints() {
+        if (didCurrentPlayerHitHisOwnShip()) {
+            model.currentPlayer.getOtherPlayer().points++;
+            return;
+        }
+        model.currentPlayer.points++;
     }
 
     private String gridToString() {
@@ -38,17 +161,13 @@ public class ViewModel implements ViewListener {
         for (int row = 0; row < Model.SEA_SIZE; row++) {
             grid.append(row);
             for (int column = 0; column < Model.SEA_SIZE; column++) {
-                if (model.shipGrid[row][column] == null) {
-                    grid.append("[").append(Model.UNHIT_POSITION).append("]");
-
+                if (isThisAShip(row, column)) {
+                    grid.append("[").append(isThisShipAlreadyHit(row, column) ?
+                            Model.HIT_POSITION : Model.UNHIT_POSITION).append("]");
+                    continue;
                 }
-                if (model.shipGrid[row][column] != null && !model.shipGrid[row][column].shipHit) {
-                    grid.append("[").append(Model.UNHIT_POSITION).append("]");
-                }
-
-                if (model.shipGrid[row][column] != null && model.shipGrid[row][column].shipHit) {
-                    grid.append("[").append(Model.HIT_POSITION).append("]");
-                }
+                grid.append("[").append(model.seaGrid[row][column].equals(Model.UNHIT_POSITION) ?
+                        Model.UNHIT_POSITION : Model.MISSED_HIT_POSITION).append("]");
             }
             grid.append("\n");
         }
@@ -67,140 +186,49 @@ public class ViewModel implements ViewListener {
     }
 
     private void randomizeShipXAndY() {
-        model.row = rand.nextInt(Model.SEA_SIZE);
-        model.column = rand.nextInt(Model.SEA_SIZE);
+        model.currentUserEnteredRow = rand.nextInt(Model.SEA_SIZE);
+        model.currentUserEnteredColumn = rand.nextInt(Model.SEA_SIZE);
     }
 
-    private void populateCoordinate(Ship randomShip) {
-        model.shipGrid[model.row][model.column] = randomShip;
+    private void populateCoordinate(Ship ship) {
+        model.shipGrid[model.currentUserEnteredRow][model.currentUserEnteredColumn] = ship;
     }
 
     private void switchPlayers() {
-        if (model.currentPlayer == Player.X) {
-            model.currentPlayer = Player.O;
-        } else {
-            model.currentPlayer = Player.X;
-        }
+        model.currentPlayer = model.currentPlayer.getOtherPlayer();
     }
 
     private boolean isCoordinateAvailable() {
-        return model.shipGrid[model.row][model.column] == null;
+        return getShipAtEnteredCoordinate() == null;
     }
 
-    private void invalidateView() {
-        view.setNewViewState(viewState);
+    private boolean didCurrentPlayerHitHisOwnShip() {
+        return getShipAtEnteredCoordinate().player == model.currentPlayer;
     }
 
-    @Override
-    public void enteredInput(String input) {
-        if (model.enterRow || model.enterColumn) {
-            int enteredRow = 0;
-            int enteredColumn = 0;
-            try {
-                if (model.enterRow) {
-                    enteredRow = Integer.valueOf(input);
-                }
-                if (model.enterColumn) {
-                    enteredColumn = Integer.valueOf(input);
-                }
-            } catch (NumberFormatException exception) {
-                if (model.enterRow) {
-                    enteredRow = -1;
-                }
-                if (model.enterColumn) {
-                    enteredColumn = -1;
-                }
-            }
-            if (model.enterRow) {
-                if (!isXOrYWithinGridRange(enteredRow)) {
-                    viewState.askForInput = true;
-                    model.enterRow = true;
-                    viewState.displayOutput = true;
-                    viewState.output = Model.ENTER_ROW + model.currentPlayer;
-                    invalidateView();
-                    return;
-                }
-            }
-            if (model.enterColumn) {
-                if (!isXOrYWithinGridRange(enteredColumn)) {
-                    viewState.askForInput = true;
-                    model.enterColumn = true;
-                    viewState.displayOutput = true;
-                    viewState.output = Model.ENTER_COLUMN + model.currentPlayer;
-                    invalidateView();
-                    return;
-                }
-            }
-            if (model.enterRow) {
-                model.row = enteredRow;
-                model.enterRow = false;
-                model.enterColumn = true;
-                viewState.output = Model.ENTER_COLUMN + model.currentPlayer;
-                viewState.displayOutput = true;
-                viewState.askForInput = true;
-                invalidateView();
-                return;
-            }
-            if (model.enterColumn) {
-                model.column = enteredColumn;
-                model.enterColumn = false;
-                model.enterRow = true;
-                viewState.displayOutput = true;
-                viewState.askForInput = true;
-                enteredCoordinate();
-            }
-            return;
-        }
+    private boolean isThisShipAlreadyHit(int row, int column) {
+        return model.shipGrid[row][column].shipHit;
     }
 
-    private void enteredCoordinate() {
-//        if (model.shipGrid[model.row][model.column].player != null) {
-//            if (model.shipGrid[model.row][model.column].shipHit) {
-//                model.enterRow = true;
-//                viewState.output = gridToString();
-//                viewState.output += Model.SHIP_ALREADY_HIT + "\n";
-//                viewState.output += Model.ENTER_ROW + model.currentPlayer;
-//                viewState.displayOutput = true;
-//                viewState.askForInput = true;
-//                invalidateView();
-//                return;
-//            }
-//        }
-//        if (model.shipGrid[model.row][model.column].player != null) {
-//            if (model.shipGrid[model.row][model.column].shipHit) {
-//                model.enterRow = true;
-//                viewState.output = gridToString();
-//                viewState.output += Model.SHIP_ALREADY_HIT + "\n";
-//                viewState.output += Model.ENTER_ROW + model.currentPlayer;
-//                viewState.displayOutput = true;
-//                viewState.askForInput = true;
-//                invalidateView();
-//                return;
-//            }
-//        }
-//
-//        if (model.shipGrid[model.row][model.column].player == model.currentPlayer && !model.shipGrid[model.row][model.column].shipHit) {
-//            model.shipGrid[model.row][model.column].shipHit = true;
-//            viewState.output = gridToString();
-//            viewState.output += Model.HIT_OWN_SHIP + model.currentPlayer;
-//        }
-//        if (model.shipGrid[model.row][model.column].player != null && !model.shipGrid[model.row][model.column].shipHit && model.currentPlayer != model.shipGrid[model.row][model.column].player) {
-//            model.shipGrid[model.row][model.column].shipHit = true;
-//            viewState.output = gridToString();
-//            viewState.output += Model.YOU_DESTROYED_A_SHIP + model.currentPlayer;
-//        }
-//
-//        switchPlayers();
-//        invalidateView();
+    private boolean isThisAShip(int row, int column) {
+        return model.shipGrid[row][column] != null;
     }
 
     private boolean isXOrYWithinGridRange(int value) {
         return value < Model.SEA_SIZE && value >= 0;
     }
 
-    private boolean isGridSizeWithinRange(int value) {
-        return value > 2;
+    private Ship getShipAtEnteredCoordinate() {
+        return model.shipGrid[model.currentUserEnteredRow][model.currentUserEnteredColumn];
     }
 
+    private int getValueOrNegativeOne(String input) {
+        int result;
+        try {
+            result = Integer.valueOf(input);
+        } catch (NumberFormatException exception) {
+            result = -1;
+        }
+        return result;
+    }
 }
-
