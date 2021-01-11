@@ -1,3 +1,5 @@
+import com.sun.org.apache.xpath.internal.operations.Mod;
+
 import java.util.Random;
 
 public class ViewModel implements ViewListener {
@@ -23,11 +25,11 @@ public class ViewModel implements ViewListener {
     }
 
     private void invalidateView() {
-        generateViewstateFromModel();
+        generateViewStateFromModel();
         view.setNewViewState(viewState);
     }
 
-    private void generateViewstateFromModel() {
+    private void generateViewStateFromModel() {
         if (didPlayerWin()) {
             viewState.askForInput = false;
             viewState.displayOutput = true;
@@ -40,6 +42,13 @@ public class ViewModel implements ViewListener {
             viewState.output += Model.ENTER_ROW + model.currentPlayer;
             viewState.displayOutput = true;
             viewState.askForInput = true;
+            return;
+        }
+
+        if(model.didUserQuitGame){
+            viewState.displayOutput= true;
+            viewState.askForInput = false;
+            viewState.output = Model.USER_QUIT_TEXT;
             return;
         }
         if (model.didCurrentUserMiss) {
@@ -87,8 +96,15 @@ public class ViewModel implements ViewListener {
         model.didCurrentUserHitOwnShip = false;
         model.didCurrentUserHitEnemyShip = false;
         model.isShipAlreadyHit = false;
+        model.didUserQuitGame = false;
         int enteredRow = model.isUserEnteringRow ? getValueOrNegativeOne(input) : 0;
         int enteredColumn = model.isUserEnteringColumn ? getValueOrNegativeOne(input) : 0;
+        if (didUserQuit(input)) {
+            model.didUserQuitGame = true;
+            invalidateView();
+            return;
+        }
+
         if (model.isUserEnteringRow && !isXOrYWithinGridRange(enteredRow)) {
             invalidateView();
             return;
@@ -110,6 +126,10 @@ public class ViewModel implements ViewListener {
             model.isUserEnteringRow = true;
             enteredCoordinate();
         }
+    }
+
+    private boolean didUserQuit(String userInput) {
+        return userInput.equalsIgnoreCase(Model.Q);
     }
 
     private void enteredCoordinate() {

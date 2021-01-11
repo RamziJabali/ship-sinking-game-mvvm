@@ -12,6 +12,8 @@ public class Model {
     public static final String YOU_DESTROYED_A_SHIP = "Congrats! YOU destroyed YOUR ENEMIES SHIP ";
     public static final String SHIP_ALREADY_HIT = "This ship is already destroyed please select another area";
     public static final String YOU_MISSED = "No ships were hit";
+    public static final String Q = "Q";
+    public static final String USER_QUIT_TEXT = "THANKS FOR PLAYING SEE YOU SOON!";
 
     public static final int NUMBER_PER_PLAYER = 6;
     public static final int NUMBER_SHIPS = NUMBER_PER_PLAYER * 2;
@@ -25,6 +27,7 @@ public class Model {
     public boolean didCurrentUserHitOwnShip;
     public boolean didCurrentUserHitEnemyShip;
     public boolean isShipAlreadyHit;
+    public boolean didUserQuitGame;
 
     public int currentUserEnteredRow;
     public int currentUserEnteredColumn;
